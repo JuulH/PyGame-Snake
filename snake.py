@@ -159,9 +159,12 @@ class Apple(pygame.sprite.Sprite):
 class Bomb(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.image.load('sprites/bomb.png').convert_alpha()
-        self.size = self.image.get_size()
-        self.image = pygame.transform.scale(self.image, (self.size[0]*scale, self.size[1]*scale))
+        self.frame = 0
+        self.animating = False
+        self.spritesheet = pygame.image.load('sprites/bombsprites.png').convert_alpha()
+        self.size = self.spritesheet.get_size()
+        self.spritesheet = pygame.transform.scale(self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
+        self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
         self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
         self.newX, self.newY = self.rect.x, self.rect.y
         self.getSound = pygame.mixer.Sound('audio/bomb.wav')
@@ -173,14 +176,26 @@ class Bomb(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
         self.rect = self.image.get_rect(center=(width/2, height/2))
 
+    def animate(self, dt):
+        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
+        if self.frame < 7:
+            self.frame += dt * 125
+
+    def explode(self):
+        self.animating = True
+
     def replace(self):
         while True:
             self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
-            if (abs(self.rect.x - player.sprite.rect.x) > 100 and abs(self.rect.y - player.sprite.rect.y) > 100) and (abs(self.rect.x - apple.sprite.rect.x) > 32 and abs(self.rect.y - apple.sprite.rect.y) > 32): break
+            if (abs(self.rect.x - player.sprite.rect.x) > 100 and abs(self.rect.y - player.sprite.rect.y) > 100) and (abs(self.rect.x - apple.sprite.rect.x) > 64 and abs(self.rect.y - apple.sprite.rect.y) > 64): break
         self.newX, self.newY = self.rect.x, self.rect.y
 
-    def update(self, time):
-        self.rect.y = self.newY + sin(time * 30) * 4
+    def update(self, time, dt):
+        
+        if self.animating:
+            self.animate(dt)
+        else:
+            self.rect.y = self.newY + sin(time * 30) * 4  # Sine wave animation
 
 class Button():
     def __init__(self, x, y, inactive_image, active_image, scale, onClick, key):
@@ -255,7 +270,7 @@ global player_invulnerability
 elapsedTime = 0
 player_invulnerability = 0
 
-
+#region Button controls
 def ToggleMusic():
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.fadeout(100)
@@ -271,7 +286,6 @@ def ToggleSfx():
     else:
         pygame.mixer.Channel(0).set_volume(0)
 
-
 paused = False
 def TogglePause(): 
     global paused
@@ -286,6 +300,7 @@ sound_button = Button(width - 125, height - 50, pygame.image.load('sprites/UI/so
 pause_button = Button(width - 200, height - 50, pygame.image.load('sprites/UI/pausebtn.png'), pygame.image.load('sprites/UI/resumebtn.png'), 4, TogglePause, pygame.K_SPACE)
 
 buttons = [music_button, sound_button, pause_button]
+#endregion
 
 # Check game collisions
 def checkCollisions():
@@ -306,9 +321,11 @@ def checkCollisions():
             AddBomb()
     
     # Collisions with bombs
-    if bombs and pygame.sprite.spritecollideany(player.sprite, bombs):
+    collidedBomb = pygame.sprite.spritecollideany(player.sprite, bombs)
+    if bombs and collidedBomb:
         print('Game Over')
         player.sprite.onDeath()
+        collidedBomb.explode()
 
     # Collisions with body
     elif pygame.sprite.spritecollideany(player.sprite, playerBody) and player_invulnerability < 0:
@@ -329,6 +346,12 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                exit()
+            if event.key == pygame.K_b:
+                AddBomb()
 
     for button in buttons:
         button.update()
@@ -352,8 +375,7 @@ while True:
         apple.update(elapsedTime)
         apple.draw(screen)
 
-        for bomb in bombs.sprites():
-            bomb.update(elapsedTime)
+        bombs.update(elapsedTime, dt)
         bombs.draw(screen)
 
         player.draw(screen)
