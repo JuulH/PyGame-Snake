@@ -82,7 +82,7 @@ class Player(pygame.sprite.Sprite):
         self.newDir = Vector2.Zero()
         self.bodyParts = []
         playerBody.empty()
-        for i in range(8):
+        for i in range(6):
             self.addPart()
 
     def resize(self, r_scale):
@@ -185,7 +185,7 @@ class Apple(pygame.sprite.Sprite):
         pygame.mixer.Channel(0).play(self.getSound)
     
     def update(self, time):
-        self.rect.y = self.newY + sin(time * 30) * 4
+        self.rect.y = self.newY + sin(time * 5) * 4
 
 
 class Bomb(pygame.sprite.Sprite):
@@ -211,7 +211,7 @@ class Bomb(pygame.sprite.Sprite):
 
     def animate(self, dt):
         if self.frame < 7:
-            self.frame += dt * 100
+            self.frame += dt * 10
         self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
 
     def explode(self):
@@ -228,7 +228,7 @@ class Bomb(pygame.sprite.Sprite):
         if self.animating:
             self.animate(dt)
         else:
-            self.rect.y = self.newY + sin(time * 30) * 4  # Sine wave animation
+            self.rect.y = self.newY + sin(time * 5) * 4  # Sine wave animation
 
 menu_switch_ignore = False
 
@@ -486,7 +486,7 @@ def game(elapsedTime, dt):
             button.update()
             button.draw()
 
-        transitionRadius -= 10000 * dt if transitionForward else -15000 * dt
+        transitionRadius -= 1500 * dt if transitionForward else -2000 * dt
         if transitionRadius <= 0:
             transitioning = False
             transitionRadius = 0
@@ -506,7 +506,7 @@ def game(elapsedTime, dt):
 
             if not player.sprite.dead:
                 checkCollisions()
-                screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
+                screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 5) * 8 + 30)))
 
             apple.update(elapsedTime)
             apple.draw(screen)
@@ -547,7 +547,7 @@ transitionRadius = 0
 def menu(elapsedTime, dt):
     global transitionRadius, transitioning, inGame, menu_switch_ignore, transitionForward
 
-    offset = (elapsedTime * -100) % 256 - 256 # Scrolling background
+    offset = (elapsedTime * -40) % 256 - 256 # Scrolling background
     screen.blit(bg, (offset, offset))
 
     screen.blit(logoimg, logo.get_rect(center = (width/2,height/2 - 100)))
@@ -562,7 +562,7 @@ def menu(elapsedTime, dt):
 
     if transitioning:
         pygame.draw.circle(screen, '#5fd038', (player.sprite.pos.x, player.sprite.pos.y), transitionRadius, 0)
-        transitionRadius += 5000 * dt if transitionForward else -5000 * dt
+        transitionRadius += 2000 * dt if transitionForward else -1500 * dt
         if transitionRadius > width * 1.1:
             transitionRadius = width
             StartGame()
@@ -573,7 +573,7 @@ def menu(elapsedTime, dt):
 
 # Main loop
 while True:
-    dt = clock.get_rawtime() / 1000  # Delta-time since last update
+    dt = clock.get_time() / 1000  # Delta-time since last update
     elapsedTime += dt
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
