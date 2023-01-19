@@ -50,7 +50,7 @@ class Player(pygame.sprite.Sprite):
         self.oldPos = Vector2(self.pos.x - 1, self.pos.y)
         self.dir = Vector2.Zero()
         self.newDir = Vector2.Zero()
-        self.mvmtSpeed = 6
+        self.mvmtSpeed = 300
         self.mouseInfluence = .11
         self.bodyParts = []
         self.partDistance = 14 * scale # Distance between two BodyPieces
@@ -71,7 +71,7 @@ class Player(pygame.sprite.Sprite):
         self.dir = Vector2.Zero()
         self.newDir = Vector2.Zero()
         self.dead = False
-        self.mvmtSpeed = 6
+        self.mvmtSpeed = 300
 
     def menu(self):
         self.followMouse = True
@@ -103,7 +103,7 @@ class Player(pygame.sprite.Sprite):
         else:
             part.pos = self.pos - self.dir * self.partDistance * 1.25
 
-        self.mvmtSpeed += .2
+        self.mvmtSpeed += 20
 
     def onDeath(self):
         if not self.dead:
@@ -121,7 +121,7 @@ class Player(pygame.sprite.Sprite):
             part.pos = prevPart.pos - dir * self.partDistance
             part.update()
 
-    def update(self):
+    def update(self, dt):
         x,y = pygame.mouse.get_pos()
         # if(pygame.mouse.get_pressed()[0]):
         #     self.addPart()
@@ -132,7 +132,7 @@ class Player(pygame.sprite.Sprite):
         self.dir = (self.pos - self.oldPos).normalize() # Normalized direction between previous and current frame
         self.oldPos = self.pos
         self.newDir = Vector2.Lerp(self.dir,-mouseDir,self.mouseInfluence) * self.mvmtSpeed
-        self.pos = self.pos + self.newDir if not self.followMouse else mousePos - Vector2(self.rect.width / 2, self.rect.height / 2)
+        self.pos = self.pos + self.newDir * dt if not self.followMouse else mousePos - Vector2(self.rect.width / 2, self.rect.height / 2)
         #self.pos += self.dir
         #self.pos += -mouseDir + self.dir
         self.rect.x = self.pos.x
@@ -502,7 +502,7 @@ def game(elapsedTime, dt):
             #screen.blit(background, (0,0))
             screen.blit(bg, (0,0))
 
-            player.update()
+            player.update(dt)
 
             if not player.sprite.dead:
                 checkCollisions()
@@ -540,7 +540,6 @@ def game(elapsedTime, dt):
 for i in range(6):
     player.sprite.addPart()
 
-
 transitionRadius = 0
 
 # Menu loop
@@ -552,7 +551,7 @@ def menu(elapsedTime, dt):
 
     screen.blit(logoimg, logo.get_rect(center = (width/2,height/2 - 100)))
 
-    player.update()
+    player.update(dt)
     player.draw(screen)
     playerBody.draw(screen)
 
