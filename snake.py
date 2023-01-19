@@ -56,6 +56,7 @@ class Player(pygame.sprite.Sprite):
         self.partDistance = 14 * scale # Distance between two BodyPieces
         self.dead = False
         self.followMouse = True
+        self.radius = self.rect.width / 2
         
         self.deathSound = pygame.mixer.Sound('audio/death3.wav')
         self.deathSound.set_volume(0.25)
@@ -96,11 +97,11 @@ class Player(pygame.sprite.Sprite):
 
         if len(self.bodyParts) > 1:
             prevPart = self.bodyParts[len(self.bodyParts) - 2]
-            prevPart2 = self.bodyParts[len(self.bodyParts) - 3]
+            prevPart2 = self.bodyParts[len(self.bodyParts) - 3] if len(self.bodyParts) > 2 else self
             dir = (prevPart2.pos - prevPart.pos).normalize()
             part.pos = prevPart.pos - dir * self.partDistance
         else:
-            part.pos = self.pos - self.dir * self.partDistance * 1.75
+            part.pos = self.pos - self.dir * self.partDistance * 1.25
 
         self.mvmtSpeed += .2
 
@@ -116,11 +117,7 @@ class Player(pygame.sprite.Sprite):
     def simulateBody(self):
         for i, part in enumerate(self.bodyParts):
             prevPart = self.bodyParts[i - 1] if i > 0 else self
-            #dir = (prevPart.pos - part.pos).normalize()
-            #dir = (prevPart.pos - part.pos).normalize() if prevPart is not self else Vector2.Lerp(self.dir,-mouseDir,self.mouseInfluence) * self.partDistance# is dit beter?
-            #dir = (prevPart.pos - part.pos).normalize() if prevPart is not self else (self.pos - self.oldPos).normalize() * self.partDistance # is dit beter?
-            #dir = (prevPart.pos - part.pos).normalize() if prevPart is not self else self.dir * 2 # is dit beter?
-            dir = (prevPart.pos - part.pos).normalize() if prevPart is not self else (prevPart.pos - part.pos).normalize() * 1.75
+            dir = (prevPart.pos - part.pos).normalize() if prevPart is not self else (prevPart.pos - part.pos).normalize() * 1.25
             part.pos = prevPart.pos - dir * self.partDistance
             part.update()
 
@@ -154,6 +151,7 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.transform.scale(self.image, (self.size[0]*scale, self.size[1]*scale))
             self.rect = self.image.get_rect(center = (width/2,height/2))
             self.pos = Vector2.Zero()
+            self.radius = self.rect.width / 2
         
         def resize(self, r_scale):
             self.size = self.image.get_size()
@@ -193,7 +191,7 @@ class Apple(pygame.sprite.Sprite):
 class Bomb(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.frame = 0
+        self.frame = 1
         self.animating = False
         self.spritesheet = pygame.image.load('sprites/bombsprites.png').convert_alpha()
         self.size = self.spritesheet.get_size()
@@ -203,6 +201,7 @@ class Bomb(pygame.sprite.Sprite):
         self.newX, self.newY = self.rect.x, self.rect.y
         self.getSound = pygame.mixer.Sound('audio/bomb.wav')
         self.getSound.set_volume(0.15)
+        self.radius = self.rect.width / 2
         self.replace()
 
     def resize(self, r_scale):
@@ -231,6 +230,8 @@ class Bomb(pygame.sprite.Sprite):
         else:
             self.rect.y = self.newY + sin(time * 30) * 4  # Sine wave animation
 
+menu_switch_ignore = False
+
 class Button():
     def __init__(self, x, y, inactive_image, active_image, scale, onClick, key = None):
         width = inactive_image.get_width()
@@ -249,13 +250,20 @@ class Button():
         self.btnOverlay.fill((0, 0, 0))
         self.toggleActive = False
         self.key = key
+        self.ignoreMouse = False
 
         self.clickSound = pygame.mixer.Sound('audio/click.wav')
         self.hoverSound = pygame.mixer.Sound('audio/hover.wav')
         self.clickSound.set_volume(0.35)
         self.hoverSound.set_volume(0.35)
     
+    def setActive(self, active):
+        self.toggleActive = active
+        self.image = self.active_image if active else self.inactive_image
+
     def update(self):
+        global menu_switch_ignore
+
         mousePos = pygame.mouse.get_pos()
 
         # Hover effect
@@ -268,7 +276,13 @@ class Button():
             self.btnOverlay.set_alpha(0)
             self.hover = False
 
-        if (self.rect.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]) or (pygame.key.get_pressed()[self.key] if self.key else False):
+        if pygame.mouse.get_pressed()[0]:
+            if not self.rect.collidepoint(mousePos) or menu_switch_ignore:
+                self.ignoreMouse = True
+        else:
+            self.ignoreMouse = False
+
+        if ((self.rect.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]) or (pygame.key.get_pressed()[self.key] if self.key else False)) and not self.ignoreMouse:
             self.btnOverlay.set_alpha(60) # Click effect
             if not self.mouseDown:
                 pygame.mixer.Channel(0).play(self.clickSound)
@@ -301,7 +315,7 @@ bombs = pygame.sprite.Group()
 background = pygame.Surface((width,height))
 background.fill('Gray')
 
-font = 'sprites/fonts/Square.TTF'
+font = 'sprites/Fonts/Square.ttf'
 
 global score
 score = 0
@@ -358,9 +372,16 @@ pause_button = Button(width - 200, height - 50, pygame.image.load('sprites/UI/pa
 gameButtons = [music_button, sound_button, pause_button]
 
 inGame = False
+transitioning = False
+transitionForward = True
+
+def OnPlay():
+    global transitioning, transitionForward
+    transitionForward = True
+    transitioning = True
 
 def StartGame():
-    global inGame, score, player_invulnerability, elapsedTime, score_text, paused, score_details_text
+    global inGame, score, player_invulnerability, elapsedTime, score_text, paused, score_details_text, transitioning
 
     player.sprite.reset()
     bombs.empty()
@@ -372,6 +393,8 @@ def StartGame():
     score_text = score_font.render(str(score), True, 'White')
     score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
 
+    pause_button.setActive(False)
+
     paused = False
     inGame = True
 
@@ -379,20 +402,27 @@ def QuitGame():
     pygame.quit()
     exit()
 
+def OnMenu():
+    global transitioning, transitionForward, paused
+    transitionForward = False
+    transitioning = True
+    paused = True
+
 def ToMenu():
-    global inGame
+    global inGame, menu_switch_ignore, transitioning, transitionForward
 
     player.sprite.menu()
 
+    menu_switch_ignore = True
     inGame = False
 
-play_button = Button(width/2, height/2 + 125, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
-quit_button = Button(width/2, height/2 + 250, pygame.image.load('sprites/UI/quitbtn.png'), pygame.image.load('sprites/UI/quitbtn.png'), 5, QuitGame)
+play_button = Button(width/2, height/2 + 125, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, OnPlay, pygame.K_RETURN)
+quit_button = Button(width/2, height/2 + 250, pygame.image.load('sprites/UI/quitbtn.png'), pygame.image.load('sprites/UI/quitbtn.png'), 5, QuitGame, pygame.K_q)
 
 menuButtons = [play_button, quit_button]
 
-restart_button = Button(width/2, height/2 + 50, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
-menu_button = Button(width/2, height/2 + 150, pygame.image.load('sprites/UI/menubtn.png'), pygame.image.load('sprites/UI/menubtn.png'), 5, ToMenu)
+restart_button = Button(width/2, height/2 + 50, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame, pygame.K_r)
+menu_button = Button(width/2, height/2 + 150, pygame.image.load('sprites/UI/menubtn.png'), pygame.image.load('sprites/UI/menubtn.png'), 5, OnMenu, pygame.K_t)
 
 gameOverButtons = [restart_button, menu_button, quit_button]
 
@@ -403,16 +433,15 @@ def checkCollisions():
     global score, score_text, player_invulnerability, highscore, score_details_text
     
     # Collisions with apples
-    if pygame.sprite.collide_rect(apple.sprite, player.sprite): # collide_circle?
+    if pygame.sprite.collide_rect(apple.sprite, player.sprite):
         apple.sprite.replace()
         player.sprite.addPart()
         for bomb in bombs.sprites():
             bomb.replace()
         score += 1
         score_text = score_font.render(str(score), True, 'White')
-        
-        print(str(score))
-        player_invulnerability = .075
+
+        player_invulnerability = 0
 
         if score > highscore:
             highscore = score
@@ -425,13 +454,13 @@ def checkCollisions():
             AddBomb()
     
     # Collisions with bombs
-    collidedBomb = pygame.sprite.spritecollideany(player.sprite, bombs)
+    collidedBomb = pygame.sprite.spritecollideany(player.sprite, bombs, collided=pygame.sprite.collide_circle)
     if bombs and collidedBomb:
         player.sprite.onDeath()
         collidedBomb.explode()
 
     # Collisions with body
-    elif pygame.sprite.spritecollideany(player.sprite, playerBody) and player_invulnerability < 0:
+    elif pygame.sprite.spritecollideany(player.sprite, playerBody, collided=pygame.sprite.collide_circle) and player_invulnerability < 0:
         player.sprite.onDeath()
 
     # Collisions with window borders
@@ -445,54 +474,78 @@ pygame.mixer.Channel(0).set_volume(0.75)
 
 # Game loop
 def game(elapsedTime, dt):
-    global player_invulnerability, paused
+    global player_invulnerability, paused, transitioning, transitionRadius, transitionForward, player
 
-    if not paused:
-        player_invulnerability -= dt
-        
-        #screen.blit(background, (0,0))
-        screen.blit(bg, (0,0))
-
-        player.update()
-
-        if not player.sprite.dead:
-            checkCollisions()
-            screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
-
-        apple.update(elapsedTime)
+    if transitioning:
+        screen.blit(bg, (0, 0))
+        screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
         apple.draw(screen)
-
-        bombs.update(elapsedTime, dt)
-        bombs.draw(screen)
-
         player.draw(screen)
-        playerBody.draw(screen)
 
-        if player.sprite.dead:
-            screen.blit(game_over_text, game_over_text.get_rect(center = (width/2,height/2 - 150)))
-            screen.blit(score_details_text, score_details_text.get_rect(center = (width/2,height/2 - 40)))
-
-            for button in gameOverButtons:
-                button.update()
-                button.draw()
-
-    if not player.sprite.dead:
         for button in gameButtons:
             button.update()
             button.draw()
-        
-        if paused:
-            screen.blit(paused_text, paused_text.get_rect(center = (width/2,height/2 - 150)))
 
-            for button in gameOverButtons:
+        transitionRadius -= 10000 * dt if transitionForward else -15000 * dt
+        if transitionRadius <= 0:
+            transitioning = False
+            transitionRadius = 0
+        elif transitionRadius >= width * 1.1:
+            transitionRadius = width
+            ToMenu()
+        pygame.draw.circle(screen, '#5fd038', (player.sprite.pos.x, player.sprite.pos.y), transitionRadius, 0)
+
+    else:
+        if not paused:
+            player_invulnerability -= dt
+            
+            #screen.blit(background, (0,0))
+            screen.blit(bg, (0,0))
+
+            player.update()
+
+            if not player.sprite.dead:
+                checkCollisions()
+                screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
+
+            apple.update(elapsedTime)
+            apple.draw(screen)
+
+            bombs.update(elapsedTime, dt)
+            bombs.draw(screen)
+
+            player.draw(screen)
+            playerBody.draw(screen)
+
+            if player.sprite.dead:
+                screen.blit(game_over_text, game_over_text.get_rect(center = (width/2,height/2 - 150)))
+                screen.blit(score_details_text, score_details_text.get_rect(center = (width/2,height/2 - 40)))
+
+                for button in gameOverButtons:
+                    button.update()
+                    button.draw()
+
+        if not player.sprite.dead:
+            for button in gameButtons:
                 button.update()
                 button.draw()
+            
+            if paused:
+                screen.blit(paused_text, paused_text.get_rect(center = (width/2,height/2 - 150)))
 
-for i in range(8):
+                for button in gameOverButtons:
+                    button.update()
+                    button.draw()
+
+for i in range(6):
     player.sprite.addPart()
 
+
+transitionRadius = 0
+
 # Menu loop
-def menu(elapsedTime):
+def menu(elapsedTime, dt):
+    global transitionRadius, transitioning, inGame, menu_switch_ignore, transitionForward
 
     offset = (elapsedTime * -100) % 256 - 256 # Scrolling background
     screen.blit(bg, (offset, offset))
@@ -506,6 +559,17 @@ def menu(elapsedTime):
     for button in menuButtons:
         button.update()
         button.draw()
+
+    if transitioning:
+        pygame.draw.circle(screen, '#5fd038', (player.sprite.pos.x, player.sprite.pos.y), transitionRadius, 0)
+        transitionRadius += 5000 * dt if transitionForward else -5000 * dt
+        if transitionRadius > width * 1.1:
+            transitionRadius = width
+            StartGame()
+        elif transitionRadius < 0:
+            transitionRadius = 0
+            transitioning = False
+            menu_switch_ignore = False
 
 # Main loop
 while True:
@@ -521,7 +585,7 @@ while True:
     if inGame:
         game(elapsedTime, dt)
     else:
-        menu(elapsedTime)
+        menu(elapsedTime, dt)
     
     pygame.display.update()
     clock.tick(60)
