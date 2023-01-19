@@ -29,6 +29,15 @@ scale = 3    # Global sprite scaling
 sfx = True
 sfx_channel = pygame.mixer.Channel(0)
 
+highscore = 0
+try:
+    with open('highscore.txt', 'r') as f:
+        highscore = int(f.read())
+except:
+    print('No highscores saved')
+    with open('highscore.txt', 'w') as f:
+        f.write('0')
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -46,10 +55,21 @@ class Player(pygame.sprite.Sprite):
         self.bodyParts = []
         self.partDistance = 14 * scale # Distance between two BodyPieces
         self.dead = False
+        self.followMouse = True
         
         self.deathSound = pygame.mixer.Sound('audio/death3.wav')
         self.deathSound.set_volume(0.25)
     
+    def reset(self):
+        self.followMouse = False
+        self.bodyParts = []
+        playerBody.empty()
+        self.rect = self.image.get_rect(center = (width/2,height/2))
+        self.pos = Vector2(self.rect.x, self.rect.y)
+        self.oldPos = Vector2(self.pos.x - 1, self.pos.y)
+        self.dir = Vector2.Zero()
+        self.newDir = Vector2.Zero()
+
     def resize(self, r_scale):
         self.size = self.image.get_size()
         self.image = pygame.transform.scale(self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
@@ -101,7 +121,7 @@ class Player(pygame.sprite.Sprite):
         self.dir = (self.pos - self.oldPos).normalize() # Normalized direction between previous and current frame
         self.oldPos = self.pos
         self.newDir = Vector2.Lerp(self.dir,-mouseDir,self.mouseInfluence) * self.mvmtSpeed
-        self.pos += self.newDir
+        self.pos = self.pos + self.newDir if not self.followMouse else mousePos - Vector2(self.rect.width / 2, self.rect.height / 2)
         #self.pos += self.dir
         #self.pos += -mouseDir + self.dir
         self.rect.x = self.pos.x
@@ -140,7 +160,7 @@ class Apple(pygame.sprite.Sprite):
         self.newX, self.newY = self.rect.x, self.rect.y
 
         self.getSound = pygame.mixer.Sound('audio/appleGet.wav')
-        self.getSound.set_volume(0.25)
+        self.getSound.set_volume(0.15)
     
     def resize(self, r_scale):
         self.size = self.image.get_size()
@@ -168,7 +188,7 @@ class Bomb(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
         self.newX, self.newY = self.rect.x, self.rect.y
         self.getSound = pygame.mixer.Sound('audio/bomb.wav')
-        self.getSound.set_volume(0.25)
+        self.getSound.set_volume(0.15)
         self.replace()
 
     def resize(self, r_scale):
@@ -177,9 +197,9 @@ class Bomb(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(width/2, height/2))
 
     def animate(self, dt):
-        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
         if self.frame < 7:
-            self.frame += dt * 125
+            self.frame += dt * 100
+        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
 
     def explode(self):
         self.animating = True
@@ -198,7 +218,7 @@ class Bomb(pygame.sprite.Sprite):
             self.rect.y = self.newY + sin(time * 30) * 4  # Sine wave animation
 
 class Button():
-    def __init__(self, x, y, inactive_image, active_image, scale, onClick, key):
+    def __init__(self, x, y, inactive_image, active_image, scale, onClick, key = None):
         width = inactive_image.get_width()
         height = inactive_image.get_height()
         self.inactive_image = pygame.transform.scale(inactive_image, (width*scale, height*scale)).convert_alpha()
@@ -208,12 +228,18 @@ class Button():
         self.image = pygame.transform.scale(self.inactive_image, self.inactive_image.get_size()).convert_alpha()
         self.rect = self.image.get_rect(center = (x,y))
         self.mouseDown = False
+        self.hover = False
         self.onClick = onClick
         self.btnOverlay = pygame.Surface((width*scale, height*scale))
         self.btnOverlay.set_alpha(0)
         self.btnOverlay.fill((0, 0, 0))
         self.toggleActive = False
         self.key = key
+
+        self.clickSound = pygame.mixer.Sound('audio/click.wav')
+        self.hoverSound = pygame.mixer.Sound('audio/hover.wav')
+        self.clickSound.set_volume(0.35)
+        self.hoverSound.set_volume(0.35)
     
     def update(self):
         mousePos = pygame.mouse.get_pos()
@@ -221,22 +247,25 @@ class Button():
         # Hover effect
         if self.rect.collidepoint(mousePos):
             self.btnOverlay.set_alpha(30)
+            if not self.hover:
+                self.hover = True
+                pygame.mixer.Channel(0).play(self.hoverSound)
         else:
             self.btnOverlay.set_alpha(0)
+            self.hover = False
 
-        if (self.rect.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]) or pygame.key.get_pressed()[self.key]:
+        if (self.rect.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]) or (pygame.key.get_pressed()[self.key] if self.key else False):
             self.btnOverlay.set_alpha(60) # Click effect
             if not self.mouseDown:
+                pygame.mixer.Channel(0).play(self.clickSound)
                 self.onClick()
                 self.toggleActive = not self.toggleActive
                 self.image = self.active_image if self.toggleActive else self.inactive_image
                 self.mouseDown = True
-                print('Mouse down')
         else:
             if self.mouseDown:
                 self.mouseDown = False
                 self.btnOverlay.set_alpha(0)
-                print('Mouse up')
     
     def draw(self):
         screen.blit(self.image, self.rect)
@@ -263,7 +292,10 @@ score = 0
 score_font = pygame.font.Font(None, 300)
 score_text = score_font.render(str(score), False, 'White')
 
-bg = pygame.image.load("sprites/tilebg.png")
+bg = pygame.image.load("sprites/tilebgbig.png")
+logoimg = pygame.image.load("sprites/snakelogo.png")
+logoimg = pygame.transform.scale(logoimg, (logoimg.get_width()*3, logoimg.get_height()*3))
+logo = pygame.Surface(logoimg.get_size())
 
 global dt
 global player_invulnerability
@@ -299,12 +331,31 @@ music_button = Button(width - 50, height - 50, pygame.image.load('sprites/UI/mus
 sound_button = Button(width - 125, height - 50, pygame.image.load('sprites/UI/soundbtn.png'), pygame.image.load('sprites/UI/disabledbtn.png'), 4, ToggleSfx, pygame.K_n)
 pause_button = Button(width - 200, height - 50, pygame.image.load('sprites/UI/pausebtn.png'), pygame.image.load('sprites/UI/resumebtn.png'), 4, TogglePause, pygame.K_SPACE)
 
-buttons = [music_button, sound_button, pause_button]
+gameButtons = [music_button, sound_button, pause_button]
+
+inGame = False
+
+def StartGame():
+    global inGame
+
+    player.sprite.reset()
+
+    inGame = True
+
+def QuitGame():
+    pygame.quit()
+    exit()
+
+play_button = Button(width/2, height/2 + 100, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
+quit_button = Button(width/2, height/2 + 250, pygame.image.load('sprites/UI/quitbtn.png'), pygame.image.load('sprites/UI/quitbtn.png'), 5, QuitGame)
+
+menuButtons = [play_button, quit_button]
+
 #endregion
 
 # Check game collisions
 def checkCollisions():
-    global score, score_text, player_invulnerability
+    global score, score_text, player_invulnerability, highscore
     
     # Collisions with apples
     if pygame.sprite.collide_rect(apple.sprite, player.sprite): # collide_circle?
@@ -317,13 +368,17 @@ def checkCollisions():
         print(str(score))
         player_invulnerability = .1
 
-        if(score % 5     == 0):
+        if score > highscore:
+            highscore = score
+            with open("highscore.txt", "w") as f:
+                f.write(str(highscore))
+
+        if(score % 5 == 0):
             AddBomb()
     
     # Collisions with bombs
     collidedBomb = pygame.sprite.spritecollideany(player.sprite, bombs)
     if bombs and collidedBomb:
-        print('Game Over')
         player.sprite.onDeath()
         collidedBomb.explode()
 
@@ -336,39 +391,24 @@ def checkCollisions():
         player.sprite.onDeath()
 
 pygame.mixer.music.load('audio/music.wav')
-pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.set_volume(0.05)
 pygame.mixer.music.play(-1)
+pygame.mixer.Channel(0).set_volume(0.75)
 
 # Game loop
-while True:
-    dt = clock.get_rawtime() / 1000 # Delta-time since last update
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                exit()
-            if event.key == pygame.K_b:
-                AddBomb()
-
-    for button in buttons:
-        button.update()
-        button.draw()
-
-    pygame.display.update()
-    clock.tick(60)
+def game(elapsedTime, dt):
+    global player_invulnerability
 
     if not paused:
-        elapsedTime += dt
         player_invulnerability -= dt
         
         #screen.blit(background, (0,0))
         screen.blit(bg, (0,0))
 
         player.update()
-        checkCollisions()
+
+        if player.sprite.alive:
+            checkCollisions()
 
         screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
 
@@ -380,3 +420,46 @@ while True:
 
         player.draw(screen)
         playerBody.draw(screen)
+    
+    for button in gameButtons:
+        button.update()
+        button.draw()
+
+for i in range(8):
+    player.sprite.addPart()
+
+# Menu loop
+def menu(elapsedTime):
+
+    offset = (elapsedTime * -100) % 256 - 256 # Scrolling background
+    screen.blit(bg, (offset, offset))
+
+    screen.blit(logoimg, logo.get_rect(center = (width/2,height/2 - 100)))
+
+    player.update()
+    player.draw(screen)
+    playerBody.draw(screen)
+
+    for button in menuButtons:
+        button.update()
+        button.draw()
+
+# Main loop
+while True:
+    dt = clock.get_rawtime() / 1000  # Delta-time since last update
+    elapsedTime += dt
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            QuitGame()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                QuitGame()
+
+    if inGame:
+        game(elapsedTime, dt)
+    else:
+        menu(elapsedTime)
+    
+    pygame.display.update()
+    clock.tick(60)
+    
