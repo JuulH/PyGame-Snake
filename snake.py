@@ -69,6 +69,20 @@ class Player(pygame.sprite.Sprite):
         self.oldPos = Vector2(self.pos.x - 1, self.pos.y)
         self.dir = Vector2.Zero()
         self.newDir = Vector2.Zero()
+        self.dead = False
+        self.mvmtSpeed = 6
+
+    def menu(self):
+        self.followMouse = True
+        self.rect = self.image.get_rect(center = (width/2,height/2))
+        self.pos = Vector2(self.rect.x, self.rect.y)
+        self.oldPos = Vector2(self.pos.x - 1, self.pos.y)
+        self.dir = Vector2.Zero()
+        self.newDir = Vector2.Zero()
+        self.bodyParts = []
+        playerBody.empty()
+        for i in range(8):
+            self.addPart()
 
     def resize(self, r_scale):
         self.size = self.image.get_size()
@@ -290,7 +304,15 @@ background.fill('Gray')
 global score
 score = 0
 score_font = pygame.font.Font(None, 300)
-score_text = score_font.render(str(score), False, 'White')
+score_text = score_font.render(str(score), True, 'White')
+
+game_over_font = pygame.font.Font(None, 200)
+game_over_text = game_over_font.render('Game Over', True, 'White')
+
+score_details_font = pygame.font.Font(None, 50)
+score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
+
+paused_text = game_over_font.render('Paused', True, 'White')
 
 bg = pygame.image.load("sprites/tilebgbig.png")
 logoimg = pygame.image.load("sprites/snakelogo.png")
@@ -336,26 +358,44 @@ gameButtons = [music_button, sound_button, pause_button]
 inGame = False
 
 def StartGame():
-    global inGame
+    global inGame, score, player_invulnerability, elapsedTime, score_text, paused
 
     player.sprite.reset()
+    pygame.mixer.music.play(-1, 0, 100)
+    score = 0
+    player_invulnerability = 0
+    elapsedTime = 0
+    score_text = score_font.render(str(score), True, 'White')
 
+    paused = False
     inGame = True
 
 def QuitGame():
     pygame.quit()
     exit()
 
-play_button = Button(width/2, height/2 + 100, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
+def ToMenu():
+    global inGame
+
+    player.sprite.menu()
+
+    inGame = False
+
+play_button = Button(width/2, height/2 + 125, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
 quit_button = Button(width/2, height/2 + 250, pygame.image.load('sprites/UI/quitbtn.png'), pygame.image.load('sprites/UI/quitbtn.png'), 5, QuitGame)
 
 menuButtons = [play_button, quit_button]
+
+restart_button = Button(width/2, height/2 + 50, pygame.image.load('sprites/UI/playbtn.png'), pygame.image.load('sprites/UI/playbtn.png'), 5, StartGame)
+menu_button = Button(width/2, height/2 + 150, pygame.image.load('sprites/UI/menubtn.png'), pygame.image.load('sprites/UI/menubtn.png'), 5, ToMenu)
+
+gameOverButtons = [restart_button, menu_button, quit_button]
 
 #endregion
 
 # Check game collisions
 def checkCollisions():
-    global score, score_text, player_invulnerability, highscore
+    global score, score_text, player_invulnerability, highscore, score_details_text
     
     # Collisions with apples
     if pygame.sprite.collide_rect(apple.sprite, player.sprite): # collide_circle?
@@ -365,13 +405,16 @@ def checkCollisions():
             bomb.replace()
         score += 1
         score_text = score_font.render(str(score), True, 'White')
+        
         print(str(score))
-        player_invulnerability = .1
+        player_invulnerability = .075
 
         if score > highscore:
             highscore = score
             with open("highscore.txt", "w") as f:
                 f.write(str(highscore))
+
+        score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
 
         if(score % 5 == 0):
             AddBomb()
@@ -397,7 +440,7 @@ pygame.mixer.Channel(0).set_volume(0.75)
 
 # Game loop
 def game(elapsedTime, dt):
-    global player_invulnerability
+    global player_invulnerability, paused
 
     if not paused:
         player_invulnerability -= dt
@@ -407,10 +450,9 @@ def game(elapsedTime, dt):
 
         player.update()
 
-        if player.sprite.alive:
+        if not player.sprite.dead:
             checkCollisions()
-
-        screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
+            screen.blit(score_text, score_text.get_rect(center = (width/2,height/2 + sin(elapsedTime * 30) * 8 + 30)))
 
         apple.update(elapsedTime)
         apple.draw(screen)
@@ -420,10 +462,26 @@ def game(elapsedTime, dt):
 
         player.draw(screen)
         playerBody.draw(screen)
-    
-    for button in gameButtons:
-        button.update()
-        button.draw()
+
+        if player.sprite.dead:
+            screen.blit(game_over_text, game_over_text.get_rect(center = (width/2,height/2 - 150)))
+            screen.blit(score_details_text, score_details_text.get_rect(center = (width/2,height/2 - 50)))
+
+            for button in gameOverButtons:
+                button.update()
+                button.draw()
+
+    if not player.sprite.dead:
+        for button in gameButtons:
+            button.update()
+            button.draw()
+        
+        if paused:
+            screen.blit(paused_text, paused_text.get_rect(center = (width/2,height/2 - 150)))
+
+            for button in gameOverButtons:
+                button.update()
+                button.draw()
 
 for i in range(8):
     player.sprite.addPart()
