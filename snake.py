@@ -301,15 +301,17 @@ bombs = pygame.sprite.Group()
 background = pygame.Surface((width,height))
 background.fill('Gray')
 
+font = 'sprites/fonts/Square.TTF'
+
 global score
 score = 0
-score_font = pygame.font.Font(None, 300)
+score_font = pygame.font.Font(font, 275)
 score_text = score_font.render(str(score), True, 'White')
 
-game_over_font = pygame.font.Font(None, 200)
+game_over_font = pygame.font.Font(font, 200)
 game_over_text = game_over_font.render('Game Over', True, 'White')
 
-score_details_font = pygame.font.Font(None, 50)
+score_details_font = pygame.font.Font(font, 50)
 score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
 
 paused_text = game_over_font.render('Paused', True, 'White')
@@ -358,14 +360,17 @@ gameButtons = [music_button, sound_button, pause_button]
 inGame = False
 
 def StartGame():
-    global inGame, score, player_invulnerability, elapsedTime, score_text, paused
+    global inGame, score, player_invulnerability, elapsedTime, score_text, paused, score_details_text
 
     player.sprite.reset()
+    bombs.empty()
+
     pygame.mixer.music.play(-1, 0, 100)
     score = 0
     player_invulnerability = 0
     elapsedTime = 0
     score_text = score_font.render(str(score), True, 'White')
+    score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
 
     paused = False
     inGame = True
@@ -416,7 +421,7 @@ def checkCollisions():
 
         score_details_text = score_details_font.render(f"Score: {score} - Highscore: {highscore}", True, 'White')
 
-        if(score % 5 == 0):
+        if(score % 4 == 0):
             AddBomb()
     
     # Collisions with bombs
@@ -465,7 +470,7 @@ def game(elapsedTime, dt):
 
         if player.sprite.dead:
             screen.blit(game_over_text, game_over_text.get_rect(center = (width/2,height/2 - 150)))
-            screen.blit(score_details_text, score_details_text.get_rect(center = (width/2,height/2 - 50)))
+            screen.blit(score_details_text, score_details_text.get_rect(center = (width/2,height/2 - 40)))
 
             for button in gameOverButtons:
                 button.update()
