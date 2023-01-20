@@ -62,42 +62,21 @@ class Vector2():
         return abs(sqrt(self.x*self.x + self.y*self.y) - sqrt(other.x*other.x + other.y*other.y))
     
     def Angle(self, other): # TODO
-        #dot = self * other
-        #dot /= Vector2.Sqrt(self*self) if self*self > 0 else dot
-        #dot /= Vector2.Sqrt(other*other) if other*other > 0 else dot
-        #return dot
         x1 = self.x
         y1 = self.y
         x2 = other.x
         y2 = other.y
-        #dot = (x1 * x2) + (y1 * y2)
-        #l1 = sqrt(x1*x1) + sqrt(y1*y1)
-        #l2 = sqrt(x2*x2) + sqrt(y2*y2)
-        #length = abs(sqrt(abs(x1*x1) + abs(y1*y1)) + sqrt(abs(x2*x2) + abs(y2*y2)))
-        #return acos((dot/(l1*l2)))
         return None
         #sin = x1 * y2 - x2 * y1
         #cos = x1 * x2 + y1 * y2
         #return atan2(sin, cos)
         #x3 = x1 + 1
         #y3 = y1
-        
-
         #Al = atan2(y2 - y1, x2 - x1)
         #Bt = atan2(y3 - y1, x3 - x1)
-
         #w = (Bt - Al) % (2 * pi)
-
         #z = 180 * w / pi
         #return z
-        
-        #dx = x2 - x1
-        #dy = y2 - y1
-        #rads = atan2(-dy,dx)
-        #rads %= 2 * pi
-        #return Rad2Deg(rads)
-        
-        #return = v1.angle_to(v2)
     
     def Sqrt(self):
         return Vector2(sqrt(self.x),sqrt(self.y))
