@@ -244,10 +244,11 @@ class Apple(pygame.sprite.Sprite):
                 bomb.replace()
 
     def eat(self):
+        global sfx
         self.eatSound = random.choice(self.sounds)
         self.eatSound.set_volume(0.2)
         pygame.mixer.Channel(0).play(self.eatSound)
-        self.getSound.play()
+        self.getSound.play() if sfx else None
 
         self.animating = True
 
