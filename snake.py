@@ -505,7 +505,7 @@ def StartGame():
     player.sprite.reset()
     bombs.empty()
 
-    if music:
+    if music and not pygame.mixer.music.get_busy():
         pygame.mixer.music.play(-1, 0, 100)
 
     score = 0
@@ -535,6 +535,8 @@ def ToMenu():
     global inGame, menu_switch_ignore, transitioning, transitionForward
 
     player.sprite.menu()
+    if not pygame.mixer.music.get_busy() and music:
+        pygame.mixer.music.play(-1, 0, 100)
 
     menu_switch_ignore = True
     inGame = False
