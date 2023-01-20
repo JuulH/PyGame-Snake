@@ -74,7 +74,7 @@ class Player(pygame.sprite.Sprite):
         self.followMouse = True
         self.timeOfDeath = 0
 
-        self.deathSound = pygame.mixer.Sound('audio/death3.wav')
+        self.deathSound = pygame.mixer.Sound('audio/death.wav')
         self.deathSound.set_volume(0.25)
 
     def reset(self):
