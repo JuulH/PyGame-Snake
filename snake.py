@@ -23,7 +23,7 @@ global player_dead
 player_dead = False
 
 global scale
-scale = 3  # Global sprite scaling
+scale = 3 # Global sprite scaling
 
 # Load highscore from save
 highscore = 0
@@ -50,13 +50,10 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         self.frame = 0
         self.animating = False
-        self.spritesheet = pygame.image.load(
-            'sprites/headspritesheet.png').convert_alpha()
+        self.spritesheet = pygame.image.load('sprites/headspritesheet.png').convert_alpha()
         self.size = self.spritesheet.get_size()
-        self.spritesheet = pygame.transform.scale(
-            self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
-        self.image = self.spritesheet.subsurface(
-            (0, 0, 16 * scale, 16 * scale))
+        self.spritesheet = pygame.transform.scale(self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
+        self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
 
         self.rect = self.image.get_rect(center=(width/2, height/2))
         self.pos = Vector2(self.rect.x, self.rect.y)
@@ -67,8 +64,8 @@ class Player(pygame.sprite.Sprite):
         self.mouseInfluence = .11
 
         self.bodyParts = []
-        self.partDistance = 14 * scale  # Distance between two BodyPieces
-        self.radius = self.rect.width / 2  # Collision radius
+        self.partDistance = 14 * scale # Distance between two BodyPieces
+        self.radius = self.rect.width / 2 # Collision radius
 
         self.dead = False
         self.followMouse = True
@@ -105,8 +102,7 @@ class Player(pygame.sprite.Sprite):
         if self.frame < 7:
             self.frame += dt * 10
         self.frame = min(self.frame, 7)
-        self.image = self.spritesheet.subsurface(
-            (int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))  # Find correct frame in spritesheet
+        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale)) # Find correct frame in spritesheet
 
     def menu(self):
         self.reset()
@@ -116,12 +112,11 @@ class Player(pygame.sprite.Sprite):
 
     def resize(self, r_scale):
         self.size = self.image.get_size()
-        self.image = pygame.transform.scale(
-            self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
+        self.image = pygame.transform.scale(self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
         self.rect = self.image.get_rect(center=(width/2, height/2))
 
     def addPart(self):
-        part = self.BodyPiece(len(self.bodyParts) + 1)  # New body instance
+        part = self.BodyPiece(len(self.bodyParts) + 1) # New body instance
         self.bodyParts.append(part)
         # Assign instance to spritelayer with layer sorting
         playerBody.add(part, layer=90 - len(self.bodyParts))
@@ -136,7 +131,7 @@ class Player(pygame.sprite.Sprite):
         else:
             part.pos = self.pos - self.dir * self.partDistance * 1.25
 
-        self.mvmtSpeed += 20  # Increase speed after each body part
+        self.mvmtSpeed += 20 # Increase speed after each body part
 
     def onDeath(self, elapsedTime):
         if not self.dead:
@@ -162,15 +157,12 @@ class Player(pygame.sprite.Sprite):
             self.animate(dt)
 
         x, y = pygame.mouse.get_pos()
-        mousePos = Vector2(x, y)
-        mouseDir = (self.pos - mousePos).normalize()
-        # Normalized direction between previous and current frame
+        mousePos = Vector2(x, y) - Vector2(self.rect.width / 2, self.rect.height / 2)
+        mouseDir = (self.pos - mousePos).normalize() # Normalized direction between previous and current frame
         self.dir = (self.pos - self.oldPos).normalize()
         self.oldPos = self.pos
-        self.newDir = Vector2.Lerp(
-            self.dir, -mouseDir, self.mouseInfluence) * self.mvmtSpeed
-        self.pos = self.pos + self.newDir * dt if not self.followMouse else mousePos - \
-            Vector2(self.rect.width / 2, self.rect.height / 2)
+        self.newDir = Vector2.Lerp(self.dir, -mouseDir, self.mouseInfluence) * self.mvmtSpeed
+        self.pos = self.pos + self.newDir * dt if not self.followMouse else mousePos
         self.rect.x = self.pos.x
         self.rect.y = self.pos.y
 
@@ -181,13 +173,10 @@ class Player(pygame.sprite.Sprite):
             super().__init__()
             self.frame = -animOffset / 2
             self.animating = False
-            self.spritesheet = pygame.image.load(
-                'sprites/bodyspritesheet.png').convert_alpha()
+            self.spritesheet = pygame.image.load('sprites/bodyspritesheet.png').convert_alpha()
             self.size = self.spritesheet.get_size()
-            self.spritesheet = pygame.transform.scale(
-                self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
-            self.image = self.spritesheet.subsurface(
-                (0, 0, 16 * scale, 16 * scale))
+            self.spritesheet = pygame.transform.scale(self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
+            self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
 
             self.rect = self.image.get_rect(center=(width/2, height/2))
             self.pos = Vector2.Zero()
@@ -200,13 +189,11 @@ class Player(pygame.sprite.Sprite):
             if self.frame < 7:
                 self.frame += dt * 10
             self.frame = min(self.frame, 7)
-            self.image = self.spritesheet.subsurface(
-                (int(max(self.frame, 0)) * 16 * scale, 0, 16 * scale, 16 * scale))  # Find correct frame in spritesheet
+            self.image = self.spritesheet.subsurface((int(max(self.frame, 0)) * 16 * scale, 0, 16 * scale, 16 * scale)) # Find correct frame in spritesheet
 
         def resize(self, r_scale):
             self.size = self.image.get_size()
-            self.image = pygame.transform.scale(
-                self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
+            self.image = pygame.transform.scale(self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
             self.rect = self.image.get_rect(center=(width/2, height/2))
 
         def update(self):
@@ -221,16 +208,12 @@ class Apple(pygame.sprite.Sprite):
         super().__init__()
         self.frame = 1
         self.animating = False
-        self.spritesheet = pygame.image.load(
-            'sprites/applespritesheetshort.png').convert_alpha()
+        self.spritesheet = pygame.image.load('sprites/applespritesheetshort.png').convert_alpha()
         self.size = self.spritesheet.get_size()
-        self.spritesheet = pygame.transform.scale(
-            self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
-        self.image = self.spritesheet.subsurface(
-            (0, 0, 16 * scale, 16 * scale))
+        self.spritesheet = pygame.transform.scale(self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
+        self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
 
-        self.rect = self.image.get_rect(center=(random.uniform(
-            0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
+        self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
         self.newX, self.newY = self.rect.x, self.rect.y
 
         self.sounds = [
@@ -249,15 +232,13 @@ class Apple(pygame.sprite.Sprite):
         if self.frame < 3:
             self.frame += dt * 15
         self.frame = min(self.frame, 7)
-        self.image = self.spritesheet.subsurface(
-            (int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
+        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
 
         if self.frame >= 3:
             self.replace()
             self.animating = False
             self.frame = 1
-            self.image = self.spritesheet.subsurface(
-                (0, 0, 16 * scale, 16 * scale))
+            self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
 
             for bomb in bombs.sprites():
                 bomb.replace()
@@ -273,35 +254,30 @@ class Apple(pygame.sprite.Sprite):
     def resize(self, r_scale):
         self.size = self.image.get_size()
         self.image = pygame.transform.scale(
-            self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
+        self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
         self.rect = self.image.get_rect(center=(width/2, height/2))
 
     def replace(self):
-        self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(
-            0 + margin, height - margin)))  # Random position within screen margins
+        self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin))) # Random position within screen margins
         self.newX, self.newY = self.rect.x, self.rect.y
 
     def update(self, dt, time):
         if self.animating:
             self.animate(dt)
         else:
-            self.rect.y = self.newY + sin(time * 5) * 4  # Sine wave animation
+            self.rect.y = self.newY + sin(time * 5) * 4 # Sine wave animation
 
 class Bomb(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.frame = 1
         self.animating = False
-        self.spritesheet = pygame.image.load(
-            'sprites/bombsprites.png').convert_alpha()
+        self.spritesheet = pygame.image.load('sprites/bombsprites.png').convert_alpha()
         self.size = self.spritesheet.get_size()
-        self.spritesheet = pygame.transform.scale(
-            self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
-        self.image = self.spritesheet.subsurface(
-            (0, 0, 16 * scale, 16 * scale))
+        self.spritesheet = pygame.transform.scale(self.spritesheet, (self.size[0]*scale, self.size[1]*scale))
+        self.image = self.spritesheet.subsurface((0, 0, 16 * scale, 16 * scale))
 
-        self.rect = self.image.get_rect(center=(random.uniform(
-            0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
+        self.rect = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
         self.newX, self.newY = self.rect.x, self.rect.y
 
         self.getSound = pygame.mixer.Sound('audio/bomb.wav')
@@ -312,24 +288,21 @@ class Bomb(pygame.sprite.Sprite):
 
     def resize(self, r_scale):
         self.size = self.image.get_size()
-        self.image = pygame.transform.scale(
-            self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
+        self.image = pygame.transform.scale(self.image, (self.size[0]*r_scale, self.size[1]*r_scale))
         self.rect = self.image.get_rect(center=(width/2, height/2))
 
     def animate(self, dt):
         if self.frame < 7:
             self.frame += dt * 10
         self.frame = min(self.frame, 7)
-        self.image = self.spritesheet.subsurface(
-            (int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
+        self.image = self.spritesheet.subsurface((int(self.frame) * 16 * scale, 0, 16 * scale, 16 * scale))
 
     def explode(self):
         self.animating = True
 
     def replace(self):
         while True:
-            newPos = self.image.get_rect(center=(random.uniform(
-                0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
+            newPos = self.image.get_rect(center=(random.uniform(0 + margin, width - margin), random.uniform(0 + margin, height - margin)))
             if (abs(newPos.x - player.sprite.rect.x) > 100 and abs(newPos.y - player.sprite.rect.y) > 100) and (abs(newPos.x - apple.sprite.rect.x) > 64 and abs(newPos.y - apple.sprite.rect.y) > 64):
                 break
         self.rect = newPos
@@ -339,7 +312,7 @@ class Bomb(pygame.sprite.Sprite):
         if self.animating:
             self.animate(dt)
         else:
-            self.rect.y = self.newY + sin(time * 5) * 4  # Sine wave animation
+            self.rect.y = self.newY + sin(time * 5) * 4 # Sine wave animation
 
 playerBody = pygame.sprite.LayeredUpdates()
 
@@ -350,7 +323,7 @@ apple = pygame.sprite.GroupSingle()
 apple.add(Apple())
 
 bombs = pygame.sprite.Group()
-# endregion
+#endregion
 
 # UI Text
 font = 'sprites/Fonts/Square.ttf'
@@ -386,23 +359,19 @@ for i in range(6):
     player.sprite.addPart()
 
 #region Custom button implementation
-menu_switch_ignore = False  # Prevents looping through menus
+menu_switch_ignore = False # Prevents looping through menus
 
 class Button():
     def __init__(self, x, y, inactive_image, active_image, scale, onClick, key=None):
         self.size = inactive_image.get_size()
-        self.inactive_image = pygame.transform.scale(
-            inactive_image, (self.size[0]*scale, self.size[1]*scale)).convert_alpha()
-        self.active_image = pygame.transform.scale(
-            active_image, (self.size[0]*scale, self.size[1]*scale)).convert_alpha()
+        self.inactive_image = pygame.transform.scale(inactive_image, (self.size[0]*scale, self.size[1]*scale)).convert_alpha()
+        self.active_image = pygame.transform.scale(active_image, (self.size[0]*scale, self.size[1]*scale)).convert_alpha()
         self.inactive_image.set_alpha(225)
         self.active_image.set_alpha(225)
-        self.image = pygame.transform.scale(
-            self.inactive_image, self.inactive_image.get_size()).convert_alpha()
+        self.image = pygame.transform.scale(self.inactive_image, self.inactive_image.get_size()).convert_alpha()
         self.rect = self.image.get_rect(center=(x, y))
 
-        self.btnOverlay = pygame.Surface(
-            (self.size[0]*scale, self.size[1]*scale))
+        self.btnOverlay = pygame.Surface((self.size[0]*scale, self.size[1]*scale))
         self.btnOverlay.set_alpha(0)
         self.btnOverlay.fill((0, 0, 0))
 
@@ -447,7 +416,7 @@ class Button():
 
         # Button clicked
         if ((self.rect.collidepoint(mousePos) and pygame.mouse.get_pressed()[0]) or (pygame.key.get_pressed()[self.key] if self.key else False)) and not self.ignoreMouse:
-            self.btnOverlay.set_alpha(60)  # Click effect
+            self.btnOverlay.set_alpha(60) # Click effect
 
             if not self.mouseDown:
                 self.onClick()
@@ -595,7 +564,7 @@ def checkCollisions(elapsedTime):
         player.sprite.onDeath(0)
 
     # Collisions with window borders
-    if(player.sprite.pos.x > width - 10 or player.sprite.pos.x < 10 or player.sprite.pos.y > height - 10 or player.sprite.pos.y < 10):
+    if(player.sprite.pos.x > width - 10 or player.sprite.pos.x < -10 or player.sprite.pos.y > height - 10 or player.sprite.pos.y < -10):
         player.sprite.onDeath(0)
 
 # Game loop
