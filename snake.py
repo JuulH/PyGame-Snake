@@ -665,7 +665,7 @@ def menu(elapsedTime, dt):
     global transitionRadius, transitioning, inGame, menu_switch_ignore, transitionForward
 
     # Scrolling background
-    offset = (elapsedTime * -40) % 256 - 256
+    offset = (elapsedTime * -30) % 256 - 256
     screen.blit(bg, (offset, offset))
 
     screen.blit(logoimg, logo.get_rect(center = (width/2,height/2 - 100)))
